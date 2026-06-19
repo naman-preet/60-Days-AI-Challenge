@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Football Intelligence Profile</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f5f7;color:#172b4d;font-size:14px;line-height:1.5;}
+  .page{max-width:900px;margin:0 auto;padding:32px 20px;}
+
+  /* Header */
+  .top-header{background:linear-gradient(135deg,#0052cc 0%,#5243aa 100%);color:#fff;border-radius:14px;padding:32px 36px;margin-bottom:28px;text-align:center;}
+  .top-header .badge{display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:4px 16px;font-size:12px;font-weight:600;margin-bottom:12px;}
+  .top-header h1{font-size:26px;font-weight:700;margin-bottom:8px;}
+  .top-header p{opacity:.85;font-size:14px;max-width:480px;margin:0 auto;}
+  .meta-row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  .meta-pill{background:rgba(255,255,255,.18);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:500;}
+
+  /* Section labels */
+  .section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e6c84;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+
+  /* Cards */
+  .card{background:#fff;border-radius:12px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;}
+  .card.featured{border:2px solid #0052cc;}
+  .card.archetype{border:2px solid #5243aa;}
+
+  /* Grid layouts */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  @media(max-width:640px){.grid2,.grid3,.grid4{grid-template-columns:1fr;}}
+
+  /* Metric cards */
+  .metric-card{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+  .metric-label{font-size:11px;color:#5e6c84;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+  .metric-val{font-size:22px;font-weight:700;color:#172b4d;margin-bottom:3px;}
+  .metric-sub{font-size:11px;color:#5e6c84;}
+  .bar-bg{height:6px;background:#ebecf0;border-radius:99px;overflow:hidden;margin-top:8px;}
+  .bar-fill{height:100%;border-radius:99px;}
+  .fill-blue{background:#0052cc;} .fill-green{background:#3B6D11;} .fill-amber{background:#854F0B;} .fill-purple{background:#5243aa;} .fill-red{background:#A32D2D;}
+
+  /* Prediction summary */
+  .pred-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f1f3;font-size:13px;}
+  .pred-row:last-child{border-bottom:none;}
+  .conf-chip{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:#e6f0ff;color:#0052cc;}
+
+  /* Legend match */
+  .legend-card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);text-align:center;}
+  .legend-flag{font-size:40px;margin-bottom:8px;}
+  .legend-name{font-size:15px;font-weight:700;color:#172b4d;margin-bottom:4px;}
+  .legend-pct{font-size:32px;font-weight:700;margin-bottom:6px;}
+  .pct-cr{color:#3B6D11;} .pct-lm{color:#0052cc;}
+  .winner-badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 12px;border-radius:20px;margin-bottom:10px;}
+  .wb-cr{background:#e3fcef;color:#006644;} .wb-lm{background:#e6f0ff;color:#0052cc;}
+  .legend-note{font-size:12px;color:#5e6c84;line-height:1.6;}
+
+  /* Trait table */
+  .trait-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f0f1f3;font-size:13px;}
+  .trait-row:last-child{border-bottom:none;}
+  .trait-name{min-width:120px;color:#5e6c84;font-size:12px;}
+  .trait-bar-bg{flex:1;height:5px;background:#ebecf0;border-radius:99px;overflow:hidden;}
+  .trait-bar{height:100%;border-radius:99px;}
+  .trait-val{font-size:12px;font-weight:700;color:#172b4d;min-width:24px;text-align:right;}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;min-width:64px;text-align:center;}
+  .tag-high{background:#e3fcef;color:#006644;} .tag-mid{background:#fffae6;color:#7a5c00;} .tag-low{background:#ffebe6;color:#bf2600;}
+
+  /* Archetype */
+  .archetype-icon{font-size:36px;margin-bottom:10px;}
+  .archetype-title{font-size:20px;font-weight:700;color:#172b4d;margin-bottom:8px;}
+  .archetype-desc{font-size:13px;color:#344563;line-height:1.7;margin-bottom:16px;}
+  .kt-grid{display:flex;flex-wrap:wrap;gap:8px;}
+  .kt{background:#eeedfe;color:#3c3489;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;}
+
+  /* Recs */
+  .rec-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+  .rec-icon{font-size:22px;margin-bottom:8px;color:#5e6c84;}
+  .rec-label{font-size:11px;color:#5e6c84;font-weight:600;text-transform:uppercase;margin-bottom:4px;}
+  .rec-val{font-size:14px;font-weight:700;color:#172b4d;margin-bottom:4px;}
+  .rec-why{font-size:11px;color:#5e6c84;line-height:1.5;}
+
+  /* Insights */
+  .insight-row{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f0f1f3;font-size:13px;color:#344563;line-height:1.6;}
+  .insight-row:last-child{border-bottom:none;}
+  .i-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+
+  /* Quiz breakdown */
+  .q-row{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f0f1f3;font-size:13px;line-height:1.5;}
+  .q-row:last-child{border-bottom:none;}
+  .q-status{font-size:16px;flex-shrink:0;}
+  .q-note{font-size:11px;color:#5e6c84;margin-top:3px;}
+
+  /* Areas */
+  .area-title{font-size:12px;font-weight:700;margin-bottom:8px;}
+  .area-title.strong{color:#006644;} .area-title.weak{color:#bf2600;}
+  .area-item{font-size:12px;color:#344563;padding:3px 0;display:flex;gap:6px;}
+  .dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+  .dot-g{background:#3B6D11;} .dot-r{background:#A32D2D;}
+
+  /* Dividers */
+  hr{border:none;border-top:1px solid #ebecf0;margin:24px 0;}
+
+  /* Footer */
+  .footer{text-align:center;padding:20px;font-size:12px;color:#5e6c84;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="top-header">
+    <div class="badge">⚽ Football Intelligence Profile — Complete</div>
+    <h1>Your Football Intelligence Profile</h1>
+    <p>Built from FIFA World Cup 2026 live data, your Football IQ Quiz results, and a 10-trait personality assessment.</p>
+    <div class="meta-row">
+      <span class="meta-pill">📅 June 2026</span>
+      <span class="meta-pill">🧠 Score: 78 / 100</span>
+      <span class="meta-pill">🏆 Football Follower</span>
+      <span class="meta-pill">⚡ Relentless Competitor</span>
+    </div>
+  </div>
+
+  <!-- SECTION 1: WC 2026 PREDICTIONS -->
+  <div class="section-label">🏆 Section 1 — World Cup 2026 Prediction Report</div>
+  <div class="card">
+    <div class="pred-row"><strong>Most likely winner</strong><span>Argentina</span><span class="conf-chip">72% confidence</span></div>
+    <div class="pred-row"><strong>Most likely runner-up</strong><span>France</span><span class="conf-chip">65% confidence</span></div>
+    <div class="pred-row"><strong>Dark horse</strong><span>Germany</span><span class="conf-chip">42% confidence</span></div>
+    <div class="pred-row"><strong>Player to watch</strong><span>Kylian Mbappe (95/100 rating)</span><span class="conf-chip">Top pick</span></div>
+  </div>
+  <div class="grid3">
+    <div class="metric-card">
+      <div class="metric-label">Argentina form score</div>
+      <div class="metric-val">92 / 100</div>
+      <div class="metric-sub">FIFA rank #1</div>
+      <div class="bar-bg"><div class="bar-fill fill-green" style="width:92%"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">France form score</div>
+      <div class="metric-val">90 / 100</div>
+      <div class="metric-sub">FIFA rank #3</div>
+      <div class="bar-bg"><div class="bar-fill fill-blue" style="width:90%"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Germany form score</div>
+      <div class="metric-val">87 / 100</div>
+      <div class="metric-sub">FIFA rank #9</div>
+      <div class="bar-bg"><div class="bar-fill fill-amber" style="width:87%"></div></div>
+    </div>
+  </div>
+  <div class="card" style="font-size:13px;color:#344563;line-height:1.7;">
+    <strong>Key evidence:</strong> Argentina won 2022, hold the #1 FIFA ranking, achieved a 68% historical win rate across 50 matches, and opened 2026 with a 3-0 win over Algeria. France, runners-up in 2022, are powered by Mbappe (95/100 player rating). Germany's 7-1 demolition of Curaçao on June 14 signals a potential resurgence as the tournament's most dangerous dark horse.
+  </div>
+
+  <hr>
+
+  <!-- SECTION 2: FOOTBALL IQ -->
+  <div class="section-label">🧠 Section 2 — Football Awareness Score</div>
+  <div class="grid3">
+    <div class="metric-card">
+      <div class="metric-label">Awareness score</div>
+      <div class="metric-val">78 / 100</div>
+      <div class="metric-sub">4 of 5 correct</div>
+      <div class="bar-bg"><div class="bar-fill fill-blue" style="width:78%"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Fan classification</div>
+      <div class="metric-val" style="font-size:15px;padding-top:6px;">Football Follower</div>
+      <div class="metric-sub">Level 3 of 5</div>
+      <div class="bar-bg"><div class="bar-fill fill-amber" style="width:60%"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Strongest area</div>
+      <div class="metric-val" style="font-size:14px;padding-top:6px;">WC History &amp; Stars</div>
+      <div class="metric-sub">Gap: live results</div>
+      <div class="bar-bg"><div class="bar-fill fill-green" style="width:85%"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">📋 Question breakdown</div>
+    <div class="q-row">
+      <span class="q-status">✅</span>
+      <div><div><strong>Q1 — How many teams in the 2026 World Cup? → 48</strong></div><div class="q-note">Correct! 2026 is the first edition with 48 teams, expanded from 32.</div></div>
+    </div>
+    <div class="q-row">
+      <span class="q-status">✅</span>
+      <div><div><strong>Q2 — 2022 World Cup winner? → Argentina</strong></div><div class="q-note">Correct! Argentina beat France on penalties in one of the greatest finals ever played.</div></div>
+    </div>
+    <div class="q-row">
+      <span class="q-status">✅</span>
+      <div><div><strong>Q3 — 2022 Golden Boot winner? → Kylian Mbappe</strong></div><div class="q-note">Correct! Mbappe scored 8 goals in Qatar including a hat-trick in the final.</div></div>
+    </div>
+    <div class="q-row">
+      <span class="q-status">❌</span>
+      <div><div><strong>Q4 — Which team scored 7 goals in 2026? → Germany</strong> (you chose Brazil)</div><div class="q-note">Germany crushed Curaçao 7-1 on June 14 — the tournament's biggest statement so far.</div></div>
+    </div>
+    <div class="q-row">
+      <span class="q-status">✅</span>
+      <div><div><strong>Q5 — Double Golden Ball winner? → Lionel Messi</strong></div><div class="q-note">Correct! Messi won best player at both 2014 and 2022 World Cups — unique in history.</div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="area-title strong">✅ Strongest areas</div>
+      <div class="area-item"><span class="dot dot-g"></span>World Cup history &amp; winners</div>
+      <div class="area-item"><span class="dot dot-g"></span>Star player awareness (Messi, Mbappe)</div>
+      <div class="area-item"><span class="dot dot-g"></span>Tournament structure knowledge</div>
+    </div>
+    <div class="card">
+      <div class="area-title weak">⚠️ Key gaps</div>
+      <div class="area-item"><span class="dot dot-r"></span>Live 2026 match results — Germany's 7-1 win was missed</div>
+      <div class="area-item"><span class="dot dot-r"></span>Following real-time tournament updates</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- SECTION 3: MESSI VS RONALDO -->
+  <div class="section-label">👕 Section 3 — Messi vs Ronaldo Personality Match</div>
+  <div class="grid2">
+    <div class="legend-card">
+      <div class="winner-badge wb-cr">Stronger match</div>
+      <div class="legend-flag">🟢</div>
+      <div class="legend-name">Cristiano Ronaldo</div>
+      <div class="legend-pct pct-cr">68%</div>
+      <div class="bar-bg" style="margin-bottom:12px;"><div class="bar-fill fill-green" style="width:68%"></div></div>
+      <div class="legend-note">High ambition, confidence, competitiveness, risk-taking, and proven-method thinking align strongly with Ronaldo's relentless, results-first, self-belief-driven approach.</div>
+    </div>
+    <div class="legend-card">
+      <div class="winner-badge wb-lm">Secondary match</div>
+      <div class="legend-flag">🔵</div>
+      <div class="legend-name">Lionel Messi</div>
+      <div class="legend-pct pct-lm">44%</div>
+      <div class="bar-bg" style="margin-bottom:12px;"><div class="bar-fill fill-blue" style="width:44%"></div></div>
+      <div class="legend-note">Balanced teamwork and decision-making echo Messi's collaborative intelligence, but low creativity and work ethic diverge from his instinctive, free-flowing genius.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">📊 Trait profile breakdown</div>
+    <div class="trait-row"><span class="trait-name">Ambition</span><div class="trait-bar-bg"><div class="trait-bar fill-green" style="width:100%"></div></div><span class="trait-val">5/5</span><span class="tag tag-high">Ronaldo</span></div>
+    <div class="trait-row"><span class="trait-name">Confidence</span><div class="trait-bar-bg"><div class="trait-bar fill-green" style="width:100%"></div></div><span class="trait-val">5/5</span><span class="tag tag-high">Ronaldo</span></div>
+    <div class="trait-row"><span class="trait-name">Competitiveness</span><div class="trait-bar-bg"><div class="trait-bar fill-green" style="width:80%"></div></div><span class="trait-val">4/5</span><span class="tag tag-high">Ronaldo</span></div>
+    <div class="trait-row"><span class="trait-name">Risk taking</span><div class="trait-bar-bg"><div class="trait-bar fill-green" style="width:80%"></div></div><span class="trait-val">4/5</span><span class="tag tag-high">Ronaldo</span></div>
+    <div class="trait-row"><span class="trait-name">Discipline</span><div class="trait-bar-bg"><div class="trait-bar fill-green" style="width:80%"></div></div><span class="trait-val">4/5</span><span class="tag tag-high">Ronaldo</span></div>
+    <div class="trait-row"><span class="trait-name">Decision making</span><div class="trait-bar-bg"><div class="trait-bar fill-blue" style="width:60%"></div></div><span class="trait-val">3/5</span><span class="tag tag-mid">Balanced</span></div>
+    <div class="trait-row"><span class="trait-name">Teamwork</span><div class="trait-bar-bg"><div class="trait-bar fill-blue" style="width:60%"></div></div><span class="trait-val">3/5</span><span class="tag tag-mid">Balanced</span></div>
+    <div class="trait-row"><span class="trait-name">Learning style</span><div class="trait-bar-bg"><div class="trait-bar fill-blue" style="width:60%"></div></div><span class="trait-val">3/5</span><span class="tag tag-mid">Balanced</span></div>
+    <div class="trait-row"><span class="trait-name">Work ethic</span><div class="trait-bar-bg"><div class="trait-bar fill-red" style="width:40%"></div></div><span class="trait-val">2/5</span><span class="tag tag-low">Gap area</span></div>
+    <div class="trait-row"><span class="trait-name">Creativity</span><div class="trait-bar-bg"><div class="trait-bar fill-red" style="width:20%"></div></div><span class="trait-val">1/5</span><span class="tag tag-low">Gap area</span></div>
+  </div>
+
+  <hr>
+
+  <!-- ARCHETYPE -->
+  <div class="section-label">♟️ Your Football Personality Archetype</div>
+  <div class="card archetype">
+    <div class="archetype-icon">⚡</div>
+    <div class="archetype-title">Relentless Competitor</div>
+    <div class="archetype-desc">You are driven by results, fuelled by self-belief, and refuse to accept anything less than the top. Like Ronaldo at his peak, your combination of sky-high ambition, unshakeable confidence, and competitive fire means you show up hardest when the stakes are highest. You don't need creativity — you win through sheer force of will and calculated risk. Your balanced teamwork style means you can function in a team, but you perform best when you have room to be decisive and visible. The one area to watch: work ethic. The greatest competitors pair their natural drive with relentless daily grind — that's the gap between good and legendary.</div>
+    <div class="kt-grid">
+      <span class="kt">Max ambition</span>
+      <span class="kt">Unshakeable confidence</span>
+      <span class="kt">High competitiveness</span>
+      <span class="kt">Calculated risk-taker</span>
+      <span class="kt">Results-first mindset</span>
+      <span class="kt">Visible leader</span>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="section-label">⭐ Personalised Recommendations</div>
+  <div class="grid4">
+    <div class="rec-card">
+      <div class="rec-icon">👤</div>
+      <div class="rec-label">Player to follow</div>
+      <div class="rec-val">Cristiano Ronaldo</div>
+      <div class="rec-why">Your personality mirrors his ambition, confidence, and competitive fire. Watching him shows your own traits at their ceiling.</div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-icon">🏟️</div>
+      <div class="rec-label">Club to follow</div>
+      <div class="rec-val">Real Madrid</div>
+      <div class="rec-why">Built on relentless winning, star power, and high-stakes dominance — matches your competitive archetype perfectly.</div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-icon">🌍</div>
+      <div class="rec-label">National team</div>
+      <div class="rec-val">Portugal</div>
+      <div class="rec-why">Ranked 5th, form score 88/100. A team built around one dominant star's will to win — exactly your personality blueprint.</div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-icon">⚔️</div>
+      <div class="rec-label">Rivalry to explore</div>
+      <div class="rec-val">Messi vs Ronaldo</div>
+      <div class="rec-why">The greatest individual rivalry in football history — perfectly frames the competitive, results-obsessed mindset you share with one side.</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- KEY INSIGHTS -->
+  <div class="section-label">💡 Key Insights Summary</div>
+  <div class="card">
+    <div class="insight-row">
+      <span class="i-icon">✅</span>
+      <span>You scored 78/100 on Football IQ despite being a self-described beginner — your World Cup history knowledge is already at Football Follower level, well above expectation.</span>
+    </div>
+    <div class="insight-row">
+      <span class="i-icon">🔵</span>
+      <span>Your personality is 68% Ronaldo-aligned — the Relentless Competitor archetype. Ambition and confidence at 5/5 are your defining traits, directly matching Ronaldo's core identity from the workbook data.</span>
+    </div>
+    <div class="insight-row">
+      <span class="i-icon">⚠️</span>
+      <span>Your biggest gap is work ethic (2/5) — an interesting tension with your maximum ambition (5/5). The greatest Relentless Competitors close that gap through deliberate daily discipline.</span>
+    </div>
+    <div class="insight-row">
+      <span class="i-icon">⚠️</span>
+      <span>Low creativity (1/5) makes you a structured, proven-method thinker. This is a strength in systematic environments, a gap in chaotic or unpredictable ones.</span>
+    </div>
+    <div class="insight-row">
+      <span class="i-icon">🏆</span>
+      <span>Data backs Argentina to win the 2026 World Cup. Your recommended team Portugal (form 88/100, ranked 5th) is the ideal dark-horse to follow through the tournament.</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    Football Intelligence Profile · Generated June 2026 · Data source: ABTalks WorldCup Intelligence Master workbook
+  </div>
+
+</div>
+</body>
+</html>
