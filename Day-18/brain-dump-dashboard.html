@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Project Dashboard – Full Report</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f5f7;color:#172b4d;font-size:14px;line-height:1.5;}
+  .dashboard{max-width:1100px;margin:0 auto;padding:28px 16px;}
+
+  /* ── NAV TABS ── */
+  .tabs{display:flex;gap:4px;margin-bottom:28px;background:#fff;border-radius:10px;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.08);flex-wrap:wrap;}
+  .tab-btn{flex:1;min-width:120px;padding:10px 16px;border:none;background:transparent;border-radius:8px;font-size:13px;font-weight:600;color:#5e6c84;cursor:pointer;transition:all .2s;}
+  .tab-btn:hover{background:#f4f5f7;color:#172b4d;}
+  .tab-btn.active{background:linear-gradient(135deg,#0052cc,#0065ff);color:#fff;box-shadow:0 2px 8px rgba(0,82,204,.3);}
+  .tab-panel{display:none;} .tab-panel.active{display:block;}
+
+  /* ── HEADERS ── */
+  .page-header{border-radius:12px;padding:28px 32px;margin-bottom:24px;color:#fff;}
+  .h-blue{background:linear-gradient(135deg,#0052cc 0%,#0065ff 100%);}
+  .h-purple{background:linear-gradient(135deg,#5243aa 0%,#6554c0 100%);}
+  .h-teal{background:linear-gradient(135deg,#00796b 0%,#009688 100%);}
+  .page-header h1{font-size:22px;font-weight:700;margin-bottom:6px;}
+  .page-header p{opacity:.8;font-size:13px;}
+  .meta-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .meta-pill{background:rgba(255,255,255,.18);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:500;}
+
+  /* ── GRID ── */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px;}
+  @media(max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+  /* ── CARDS ── */
+  .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:18px;}
+  .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e6c84;margin-bottom:14px;}
+
+  /* ── TABLE ── */
+  table{width:100%;border-collapse:collapse;}
+  thead tr{background:#f4f5f7;}
+  th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#5e6c84;padding:10px 12px;text-align:left;}
+  td{padding:12px;border-bottom:1px solid #ebecf0;font-size:13px;vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:#fafbfc;}
+
+  /* ── BADGES ── */
+  .badge{display:inline-flex;align-items:center;gap:3px;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .badge-red{background:#ffebe6;color:#bf2600;}
+  .badge-orange{background:#fff3e0;color:#b45309;}
+  .badge-green{background:#e3fcef;color:#006644;}
+  .badge-pending{background:#fffae6;color:#7a5c00;}
+  .badge-blue{background:#e6f0ff;color:#0052cc;}
+  .badge-conflict{background:#fff0f0;color:#ae2424;}
+  .badge-purple{background:#f0ebff;color:#5243aa;}
+
+  /* ── OWNER CHIPS ── */
+  .owner{background:#e8f0fe;color:#174ea6;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;display:inline-block;}
+  .owner-a{background:#fce8ff;color:#6b21a8;}
+  .owner-b{background:#e8f5e9;color:#1b5e20;}
+  .owner-c{background:#fff3e0;color:#7c4700;}
+
+  /* ── LIST ITEMS ── */
+  .list-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f0f1f3;font-size:13px;color:#344563;}
+  .list-item:last-child{border-bottom:none;}
+  .list-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+
+  /* ── TAKEAWAY ── */
+  .takeaway-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #f0f1f3;}
+  .takeaway-item:last-child{border-bottom:none;}
+  .takeaway-label{font-size:11px;font-weight:600;color:#5e6c84;text-transform:uppercase;letter-spacing:.06em;}
+  .takeaway-val{font-size:13px;color:#172b4d;margin-top:2px;}
+
+  /* ── PROGRESS ── */
+  .prog-wrap{margin-top:10px;}
+  .prog-label{display:flex;justify-content:space-between;font-size:12px;color:#5e6c84;margin-bottom:4px;}
+  .prog-bar{height:8px;background:#ebecf0;border-radius:99px;overflow:hidden;}
+  .prog-fill{height:100%;border-radius:99px;}
+  .fill-blue{background:linear-gradient(90deg,#0052cc,#0065ff);}
+  .fill-red{background:linear-gradient(90deg,#f87171,#ef4444);}
+  .fill-yellow{background:linear-gradient(90deg,#fbbf24,#f59e0b);}
+
+  /* ── SPEAKER BLOCKS ── */
+  .speaker-card{border-radius:10px;padding:18px;margin-bottom:14px;}
+  .speaker-a{border-left:4px solid #9333ea;background:#fdf4ff;}
+  .speaker-b{border-left:4px solid #16a34a;background:#f0fdf4;}
+  .speaker-c{border-left:4px solid #ea580c;background:#fff7ed;}
+  .speaker-name{font-size:13px;font-weight:700;margin-bottom:8px;}
+  .speaker-quote{font-size:13px;font-style:italic;color:#475569;margin-bottom:8px;padding:8px 12px;background:rgba(255,255,255,.6);border-radius:6px;}
+  .speaker-meta{font-size:12px;color:#64748b;}
+
+  /* ── CONFLICT BOX ── */
+  .conflict-box{background:#fff8e1;border-left:4px solid #f59e0b;border-radius:6px;padding:14px;margin-bottom:10px;font-size:13px;color:#78350f;line-height:1.6;}
+  .conflict-box strong{display:block;margin-bottom:4px;}
+  .conflict-critical{background:#fff0f0;border-left-color:#ef4444;color:#7f1d1d;}
+
+  /* ── SOURCE BLOCK ── */
+  .source-block{border-radius:10px;padding:16px;margin-bottom:12px;}
+  .source-1{background:#e6f0ff;border-left:4px solid #0052cc;}
+  .source-2{background:#fce8ff;border-left:4px solid #9333ea;}
+  .source-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5e6c84;margin-bottom:6px;}
+  .source-val{font-size:13px;color:#172b4d;}
+
+  /* ── DECISION ROW ── */
+  .decision-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f1f3;font-size:13px;}
+  .decision-item:last-child{border-bottom:none;}
+
+  /* ── DIVIDER ── */
+  .section-mb{margin-bottom:18px;}
+  .summary-text{font-size:14px;line-height:1.65;color:#344563;}
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <!-- NAV TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('tab-full')">📋 Full Breakdown</button>
+    <button class="tab-btn" onclick="showTab('tab-transcript')">🎙️ Transcript Mode</button>
+    <button class="tab-btn" onclick="showTab('tab-merge')">🔀 Merge Mode</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       TAB 1 – FULL BREAKDOWN (June 18 Meeting)
+  ════════════════════════════════════════════════ -->
+  <div id="tab-full" class="tab-panel active">
+    <div class="page-header h-blue">
+      <h1>📋 Project Meeting – Full Breakdown</h1>
+      <p>Structured analysis of meeting notes</p>
+      <div class="meta-row">
+        <span class="meta-pill">📅 June 18, 2026</span>
+        <span class="meta-pill">👥 Rahul · Priya · Aman</span>
+        <span class="meta-pill">🚀 Launch: July 15</span>
+      </div>
+    </div>
+
+    <div class="card section-mb">
+      <div class="card-title">📝 Summary</div>
+      <p class="summary-text">A project status meeting held on June 18. The frontend UI is 80% complete, while backend API deployment is delayed due to server issues. The design team still needs to deliver the final logo. The July 15 launch date is confirmed, and weekly Monday status meetings have been established. Key blockers include server deployment and pending design asset approvals.</p>
+    </div>
+
+    <div class="grid-2 section-mb">
+      <div class="card">
+        <div class="card-title">💡 Key Takeaways</div>
+        <div class="takeaway-item">
+          <span class="list-icon">🎨</span>
+          <div><div class="takeaway-label">Frontend (Rahul)</div><div class="takeaway-val">UI is 80% complete</div></div>
+        </div>
+        <div class="takeaway-item">
+          <span class="list-icon">⚠️</span>
+          <div><div class="takeaway-label">Backend (Priya)</div><div class="takeaway-val">API deployment delayed — server issues</div></div>
+        </div>
+        <div class="takeaway-item">
+          <span class="list-icon">🖼️</span>
+          <div><div class="takeaway-label">Design (Aman)</div><div class="takeaway-val">Final logo needed from design team by Friday</div></div>
+        </div>
+        <div class="takeaway-item">
+          <span class="list-icon">📅</span>
+          <div><div class="takeaway-label">Launch Date</div><div class="takeaway-val">July 15 — confirmed, no change</div></div>
+        </div>
+        <div class="takeaway-item">
+          <span class="list-icon">🔁</span>
+          <div><div class="takeaway-label">Cadence</div><div class="takeaway-val">Weekly status meeting every Monday</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Progress Overview</div>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Frontend UI</span><span>80%</span></div>
+          <div class="prog-bar"><div class="prog-fill fill-blue" style="width:80%"></div></div>
+        </div>
+        <br>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Backend API Deployment</span><span>⚠️ Delayed</span></div>
+          <div class="prog-bar"><div class="prog-fill fill-red" style="width:20%"></div></div>
+        </div>
+        <br>
+        <div class="prog-wrap">
+          <div class="prog-label"><span>Design Assets (Logo)</span><span>⏳ Pending</span></div>
+          <div class="prog-bar"><div class="prog-fill fill-yellow" style="width:10%"></div></div>
+        </div>
+        <br>
+        <div class="card-title" style="margin-top:16px;">✅ Decisions Made</div>
+        <div class="decision-item">✅ <span>Launch date remains <strong>July 15</strong></span></div>
+        <div class="decision-item">✅ <span>Weekly status meeting every <strong>Monday</strong></span></div>
+      </div>
+    </div>
+
+    <div class="card section-mb">
+      <div class="card-title">⚡ Action Items</div>
+      <table>
+        <thead><tr><th>Task</th><th>Owner</th><th>Deadline</th><th>Priority</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Complete dashboard UI</td>
+            <td><span class="owner">Rahul</span></td>
+            <td>June 25</td>
+            <td><span class="badge badge-orange">🟠 Medium</span></td>
+            <td><span class="badge badge-pending">⏳ In Progress</span></td>
+          </tr>
+          <tr>
+            <td>Resolve API deployment issue</td>
+            <td><span class="owner">Priya</span></td>
+            <td>June 22</td>
+            <td><span class="badge badge-red">🔴 High</span></td>
+            <td><span class="badge badge-pending">⏳ Pending</span></td>
+          </tr>
+          <tr>
+            <td>Coordinate with design team for final logo</td>
+            <td><span class="owner">Aman</span></td>
+            <td>Friday (exact date not specified)</td>
+            <td><span class="badge badge-orange">🟠 Medium</span></td>
+            <td><span class="badge badge-pending">⏳ Pending</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-2 section-mb">
+      <div class="card">
+        <div class="card-title">❓ Open Questions</div>
+        <div class="list-item"><span class="list-icon">❓</span><span>Should the mobile app be released together with the web version?</span></div>
+        <div class="list-item"><span class="list-icon">❓</span><span>What is the final marketing budget?</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🚨 Risks &amp; Blockers</div>
+        <div class="list-item"><span class="list-icon">🔴</span><span>Server deployment delays — may impact backend readiness before launch</span></div>
+        <div class="list-item"><span class="list-icon">🟠</span><span>Design assets (logo) pending approval — Aman coordinating with design team</span></div>
+      </div>
+    </div>
+
+    <div class="card section-mb">
+      <div class="card-title">⚠️ Conflicts &amp; Concerns</div>
+      <div class="conflict-box"><strong>⚠️ Tight Deadline Pressure</strong>Priya's deployment issue must be resolved by June 22 with a fixed July 15 launch. If unresolved, downstream testing and QA time will be severely compressed. No contingency is documented.</div>
+      <div class="conflict-box"><strong>⚠️ Mobile App Release Ambiguity</strong>It is unresolved whether the mobile app launches with the web version. This could significantly affect scope and the July 15 deadline, but no owner or resolution date is assigned.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🗒️ Additional Notes</div>
+      <div class="list-item"><span class="list-icon">ℹ️</span><span>Logo deadline referenced as "Friday" — exact date not specified in the notes.</span></div>
+      <div class="list-item"><span class="list-icon">ℹ️</span><span>Marketing budget is unresolved and no owner has been assigned.</span></div>
+      <div class="list-item"><span class="list-icon">ℹ️</span><span>No QA, testing, or staging milestones were mentioned in the meeting notes.</span></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       TAB 2 – TRANSCRIPT MODE
+  ════════════════════════════════════════════════ -->
+  <div id="tab-transcript" class="tab-panel">
+    <div class="page-header h-purple">
+      <h1>🎙️ Transcript Mode Analysis</h1>
+      <p>Breakdown by speaker with attribution and action items</p>
+      <div class="meta-row">
+        <span class="meta-pill">👤 Speaker A</span>
+        <span class="meta-pill">👤 Speaker B</span>
+        <span class="meta-pill">👤 Speaker C</span>
+      </div>
+    </div>
+
+    <div class="card section-mb">
+      <div class="card-title">📝 Summary</div>
+      <p class="summary-text">A short transcript involving three speakers discussing project status. Speaker A raised UI completion and pending marketing content. Speaker B provided a backend testing timeline. Speaker C confirmed the launch date should remain July 15. No deadlines or owners were explicitly assigned for most items.</p>
+    </div>
+
+    <!-- Speaker Summary -->
+    <div class="card section-mb">
+      <div class="card-title">👥 Speaker Summary</div>
+      <div class="speaker-card speaker-a">
+        <div class="speaker-name" style="color:#6b21a8;">🟣 Speaker A</div>
+        <div class="speaker-quote">"We need to finish the UI this week."</div>
+        <div class="speaker-quote">"Marketing content is still pending."</div>
+        <div class="speaker-meta">Topics raised: UI completion, marketing content status</div>
+      </div>
+      <div class="speaker-card speaker-b">
+        <div class="speaker-name" style="color:#15803d;">🟢 Speaker B</div>
+        <div class="speaker-quote">"Backend testing will finish next Tuesday."</div>
+        <div class="speaker-meta">Topics raised: Backend testing timeline</div>
+      </div>
+      <div class="speaker-card speaker-c">
+        <div class="speaker-name" style="color:#c2410c;">🟠 Speaker C</div>
+        <div class="speaker-quote">"Launch date should remain July 15."</div>
+        <div class="speaker-meta">Topics raised: Launch date confirmation</div>
+      </div>
+    </div>
+
+    <!-- Decisions by Speaker -->
+    <div class="card section-mb">
+      <div class="card-title">✅ Decisions by Speaker</div>
+      <table>
+        <thead><tr><th>Speaker</th><th>Decision / Statement</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="owner owner-c">Speaker C</span></td>
+            <td>Launch date should remain July 15</td>
+            <td><span class="badge badge-blue">📌 Stated</span></td>
+          </tr>
+          <tr>
+            <td><span class="owner owner-b">Speaker B</span></td>
+            <td>Backend testing will finish next Tuesday</td>
+            <td><span class="badge badge-pending">⏳ Pending</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Action Items by Speaker -->
+    <div class="card section-mb">
+      <div class="card-title">⚡ Action Items by Speaker</div>
+      <table>
+        <thead><tr><th>Task</th><th>Raised By</th><th>Assigned To</th><th>Deadline</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Finish the UI</td>
+            <td><span class="owner owner-a">Speaker A</span></td>
+            <td><span class="badge badge-orange">⚠️ Not specified</span></td>
+            <td>This week</td>
+            <td><span class="badge badge-pending">⏳ Pending</span></td>
+          </tr>
+          <tr>
+            <td>Complete backend testing</td>
+            <td><span class="owner owner-b">Speaker B</span></td>
+            <td><span class="owner owner-b">Speaker B</span></td>
+            <td>Next Tuesday</td>
+            <td><span class="badge badge-pending">⏳ In Progress</span></td>
+          </tr>
+          <tr>
+            <td>Resolve pending marketing content</td>
+            <td><span class="owner owner-a">Speaker A</span></td>
+            <td><span class="badge badge-orange">⚠️ Not specified</span></td>
+            <td>Not specified</td>
+            <td><span class="badge badge-pending">⏳ Pending</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-2 section-mb">
+      <div class="card">
+        <div class="card-title">❓ Open Questions</div>
+        <div class="list-item"><span class="list-icon">❓</span><span>Who is responsible for finishing the UI? (Speaker A raised it but did not self-assign.)</span></div>
+        <div class="list-item"><span class="list-icon">❓</span><span>Who owns the marketing content task? No owner assigned.</span></div>
+        <div class="list-item"><span class="list-icon">❓</span><span>Is Speaker C's statement on the launch date a unilateral decision or a group consensus?</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🚨 Risks &amp; Blockers</div>
+        <div class="list-item"><span class="list-icon">🔴</span><span>UI must finish "this week" — no clear owner assigned, raising accountability risk.</span></div>
+        <div class="list-item"><span class="list-icon">🟠</span><span>Marketing content is still pending with no owner or deadline.</span></div>
+        <div class="list-item"><span class="list-icon">🟠</span><span>Backend testing finishes next Tuesday — timeline relative to launch not verified.</span></div>
+      </div>
+    </div>
+
+    <div class="card section-mb">
+      <div class="card-title">⚠️ Attribution Notes</div>
+      <div class="conflict-box"><strong>⚠️ UI Task — Ownership Unclear</strong>Speaker A said "we need to finish the UI this week" but did not explicitly assign the task to themselves or anyone else. Ownership cannot be inferred.</div>
+      <div class="conflict-box"><strong>⚠️ Marketing Content — No Owner</strong>Speaker A flagged that marketing content is still pending, but did not assign responsibility or provide a deadline.</div>
+      <div class="conflict-box"><strong>⚠️ Launch Date — Decision Authority Unclear</strong>Speaker C stated the launch date should remain July 15, but it is not clear whether this was agreed upon by all speakers or is a single speaker's position.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🗒️ Additional Notes</div>
+      <div class="list-item"><span class="list-icon">ℹ️</span><span>"This week" and "next Tuesday" are relative — exact dates not specified in the transcript.</span></div>
+      <div class="list-item"><span class="list-icon">ℹ️</span><span>Speaker identities (A, B, C) are used exactly as provided — real names not specified.</span></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       TAB 3 – MERGE MODE
+  ════════════════════════════════════════════════ -->
+  <div id="tab-merge" class="tab-panel">
+    <div class="page-header h-teal">
+      <h1>🔀 Merge Mode Analysis</h1>
+      <p>Conflicts, duplicates, and resolution review across two sources</p>
+      <div class="meta-row">
+        <span class="meta-pill">📄 Source 1</span>
+        <span class="meta-pill">📄 Source 2</span>
+      </div>
+    </div>
+
+    <div class="card section-mb">
+      <div class="card-title">📝 Summary</div>
+      <p class="summary-text">Two sources have been provided for merge analysis. Both sources reference the project launch date, but they report different dates — July 15 (Source 1) and July 20 (Source 2). This is a direct conflict that requires manual resolution. No other overlapping information was provided across the two sources.</p>
+    </div>
+
+    <!-- Source Information -->
+    <div class="card section-mb">
+      <div class="card-title">📄 Source Information</div>
+      <div class="source-block source-1">
+        <div class="source-label">Source 1</div>
+        <div class="source-val">Launch date: <strong>July 15</strong></div>
+      </div>
+      <div class="source-block source-2">
+        <div class="source-label">Source 2</div>
+        <div class="source-val">Launch date: <strong>July 20</strong></div>
+      </div>
+    </div>
+
+    <!-- Conflict Resolution Review -->
+    <div class="card section-mb">
+      <div class="card-title">⚠️ Conflict Resolution Review</div>
+      <div class="conflict-box conflict-critical">
+        <strong>🔴 CRITICAL CONFLICT — Launch Date Mismatch</strong>
+        Source 1 states the launch date is <strong>July 15</strong>. Source 2 states the launch date is <strong>July 20</strong>. These are directly contradictory and cannot be automatically resolved. A stakeholder decision is required to determine the authoritative date before proceeding.
+      </div>
+      <table style="margin-top:14px;">
+        <thead><tr><th>Field</th><th>Source 1</th><th>Source 2</th><th>Conflict</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Launch Date</td>
+            <td><strong>July 15</strong></td>
+            <td><strong>July 20</strong></td>
+            <td><span class="badge badge-conflict">⚠️ Conflict</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Duplicate Items -->
+    <div class="card section-mb">
+      <div class="card-title">🔁 Duplicate Items</div>
+      <div class="list-item"><span class="list-icon">📌</span><span>Both sources reference the <strong>launch date</strong> — this is the only overlapping field identified. The values conflict (see above).</span></div>
+    </div>
+
+    <div class="grid-2 section-mb">
+      <div class="card">
+        <div class="card-title">❓ Open Questions</div>
+        <div class="list-item"><span class="list-icon">❓</span><span>Which source is authoritative for the launch date — Source 1 (July 15) or Source 2 (July 20)?</span></div>
+        <div class="list-item"><span class="list-icon">❓</span><span>What is the origin of each source? (Meeting notes, email, document?) Not specified.</span></div>
+        <div class="list-item"><span class="list-icon">❓</span><span>Was the launch date updated between the two sources, or is one source an error?</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🚨 Risks &amp; Blockers</div>
+        <div class="list-item"><span class="list-icon">🔴</span><span>Teams may be planning against different launch dates, causing misaligned delivery timelines.</span></div>
+        <div class="list-item"><span class="list-icon">🔴</span><span>Marketing, QA, and deployment schedules could be built on the wrong date if conflict is not resolved.</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🗒️ Additional Notes</div>
+      <div class="list-item"><span class="list-icon">ℹ️</span><span>Only one data point was provided per source. No further overlap or duplication analysis is possible beyond the launch date field.</span></div>
+      <div class="list-item"><span class="list-icon">ℹ️</span><span>This conflict has <strong>not been automatically resolved</strong>, per Merge Mode rules. Manual stakeholder review is required.</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>
