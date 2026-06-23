@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Face Puzzle</title>
+<style>
+  :root {
+    --bg: #0d0d14;
+    --surface: #16161f;
+    --surface2: #1e1e2a;
+    --border: #2a2a3a;
+    --accent: #7c6af7;
+    --accent2: #f76a8a;
+    --correct: #3de89a;
+    --dragging: #f7c44a;
+    --text: #e8e8f0;
+    --text-muted: #7070a0;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  header {
+    width: 100%;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .logo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo span { font-weight: 300; }
+
+  .header-badge {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  main {
+    width: 100%;
+    max-width: 900px;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    flex: 1;
+  }
+
+  /* ── SCREENS ── */
+  .screen { width: 100%; display: none; flex-direction: column; align-items: center; gap: 20px; }
+  .screen.active { display: flex; }
+
+  /* ── CAMERA SCREEN ── */
+  .camera-container {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #000;
+    aspect-ratio: 4/3;
+    border: 2px solid var(--border);
+    box-shadow: 0 8px 40px rgba(124,106,247,0.12);
+  }
+
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scaleX(-1);
+  }
+
+  .camera-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(13,13,20,0.85);
+  }
+
+  .camera-overlay svg { width: 52px; height: 52px; color: var(--text-muted); }
+  .camera-overlay p { color: var(--text-muted); font-size: 0.9rem; text-align: center; max-width: 280px; line-height: 1.5; }
+  .camera-overlay .err-msg { color: var(--accent2); }
+
+  .face-guide {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 55%;
+    aspect-ratio: 3/4;
+    border: 2px dashed rgba(124,106,247,0.5);
+    border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
+    pointer-events: none;
+  }
+
+  .camera-label {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* ── CANVAS (hidden, used for snapshot) ── */
+  #snapshot-canvas { display: none; }
+
+  /* ── PREVIEW SCREEN ── */
+  #preview-img {
+    width: 100%;
+    max-width: 380px;
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    display: block;
+  }
+
+  .difficulty-grid {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .diff-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 24px;
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font);
+    min-width: 110px;
+  }
+  .diff-btn:hover { border-color: var(--accent); background: rgba(124,106,247,0.1); transform: translateY(-2px); }
+  .diff-btn .diff-icon { font-size: 1.6rem; }
+  .diff-btn .diff-name { font-size: 0.95rem; font-weight: 600; }
+  .diff-btn .diff-sub { font-size: 0.72rem; color: var(--text-muted); }
+
+  /* ── GAME SCREEN ── */
+  .game-layout {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stats-bar {
+    width: 100%;
+    max-width: 520px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .stat-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 500; }
+  .stat-value { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.5px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  #puzzle-board {
+    position: relative;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    overflow: visible;
+    touch-action: none;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.3);
+  }
+
+  .puzzle-piece {
+    position: absolute;
+    background-size: cover;
+    cursor: grab;
+    border-radius: 3px;
+    box-sizing: border-box;
+    transition: box-shadow 0.15s, border-color 0.2s;
+    border: 2px solid rgba(255,255,255,0.08);
+    user-select: none;
+    -webkit-user-select: none;
+    will-change: transform;
+  }
+
+  .puzzle-piece:hover { border-color: rgba(255,255,255,0.25); z-index: 2; }
+
+  .puzzle-piece.dragging {
+    cursor: grabbing;
+    border-color: var(--dragging);
+    box-shadow: 0 8px 32px rgba(247,196,74,0.35);
+    z-index: 1000;
+    border-radius: 4px;
+    opacity: 0.92;
+  }
+
+  .puzzle-piece.correct {
+    border-color: var(--correct);
+    box-shadow: 0 0 0 1px rgba(61,232,154,0.3);
+  }
+
+  .puzzle-piece.correct.dragging { border-color: var(--dragging); }
+
+  .drop-highlight {
+    position: absolute;
+    background: rgba(124,106,247,0.18);
+    border: 2px dashed rgba(124,106,247,0.5);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 0.1s;
+  }
+
+  .game-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* ── WIN SCREEN ── */
+  .win-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(13,13,20,0.92);
+    backdrop-filter: blur(8px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 24px;
+  }
+  .win-overlay.active { display: flex; }
+
+  .win-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 32px;
+    max-width: 440px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .win-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--correct));
+  }
+
+  .win-emoji { font-size: 3.5rem; line-height: 1; }
+  .win-title { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+
+  .win-stats {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 12px;
+    width: 100%;
+  }
+  .win-stat {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+  }
+  .win-stat-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .win-stat-value { font-size: 1.3rem; font-weight: 700; margin-top: 4px; color: var(--accent); }
+
+  .leaderboard {
+    width: 100%;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .lb-header {
+    padding: 10px 16px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .lb-header svg { width: 14px; height: 14px; }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 1fr 1fr;
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    align-items: center;
+    gap: 8px;
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row.me { background: rgba(124,106,247,0.08); }
+  .lb-rank { color: var(--text-muted); font-weight: 700; font-size: 0.75rem; }
+  .lb-rank.gold { color: #f7c44a; }
+  .lb-rank.silver { color: #b0b0c0; }
+  .lb-rank.bronze { color: #c07840; }
+  .lb-time { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .lb-moves { color: var(--text-muted); font-size: 0.78rem; }
+  .lb-diff { font-size: 0.72rem; color: var(--text-muted); text-align: right; }
+  .lb-empty { padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+
+  .win-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 20px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+    letter-spacing: -0.1px;
+  }
+  .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #5a4de0);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(124,106,247,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,106,247,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent); background: rgba(124,106,247,0.08); }
+
+  .btn-danger {
+    background: rgba(247,106,138,0.12);
+    color: var(--accent2);
+    border: 1px solid rgba(247,106,138,0.25);
+  }
+  .btn-danger:hover { background: rgba(247,106,138,0.22); }
+
+  .btn-success {
+    background: rgba(61,232,154,0.12);
+    color: var(--correct);
+    border: 1px solid rgba(61,232,154,0.25);
+  }
+  .btn-success:hover { background: rgba(61,232,154,0.22); }
+
+  .section-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* ── CONFETTI ── */
+  .confetti-piece {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 10000;
+    animation: confettiFall linear forwards;
+  }
+
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 500px) {
+    .stats-bar { gap: 7px; }
+    .stat-value { font-size: 1.05rem; }
+    .win-card { padding: 28px 20px; }
+    .win-stats { grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .win-stat-value { font-size: 1.1rem; }
+    .lb-row { grid-template-columns: 22px 1fr 1fr 1fr; padding: 7px 12px; }
+    .btn { padding: 10px 16px; font-size: 0.85rem; }
+  }
+
+  /* scroll into view on mobile */
+  #game-screen { scroll-margin-top: 12px; }
+
+  .progress-bar-wrap {
+    width: 100%;
+    max-width: 520px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--correct));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Face<span>Puzzle</span></div>
+  <div class="header-badge">Snap · Scramble · Solve</div>
+</header>
+
+<main>
+
+  <!-- CAMERA SCREEN -->
+  <div class="screen active" id="camera-screen">
+    <div class="camera-container" id="camera-container">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="face-guide"></div>
+      <div class="camera-label">Centre your face in the oval</div>
+      <div class="camera-overlay" id="camera-overlay" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72M19.5 4.5l-4.72 4.72M6.75 4.5L2.03 9.22M4.5 4.5l4.72 4.72M9.75 15A6.75 6.75 0 003 21.75M14.25 15a6.75 6.75 0 016.75 6.75" />
+        </svg>
+        <p class="err-msg" id="camera-error-msg">Camera access required. Please allow camera permissions and reload.</p>
+        <button class="btn btn-primary" onclick="startCamera()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+          Try Again
+        </button>
+      </div>
+    </div>
+    <canvas id="snapshot-canvas"></canvas>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn btn-primary" id="take-photo-btn" onclick="takePhoto()" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 3H7.5A4.5 4.5 0 003 7.5v9A4.5 4.5 0 007.5 21h9A4.5 4.5 0 0021 16.5v-9A4.5 4.5 0 0016.5 3H15l-1-2H10L9 3z"/></svg>
+        Take Photo
+      </button>
+    </div>
+  </div>
+
+  <!-- PREVIEW / DIFFICULTY SCREEN -->
+  <div class="screen" id="preview-screen">
+    <p class="section-title">Your photo</p>
+    <img id="preview-img" alt="Your face snapshot" />
+    <p class="section-title">Choose difficulty</p>
+    <div class="difficulty-grid">
+      <button class="diff-btn" onclick="startGame(3)">
+        <span class="diff-icon">🟩</span>
+        <span class="diff-name">Easy</span>
+        <span class="diff-sub">3 × 3 · 9 pieces</span>
+      </button>
+      <button class="diff-btn" onclick="startGame(4)">
+        <span class="diff-icon">🟧</span>
+        <span class="diff-name">Medium</span>
+        <span class="diff-sub">4 × 4 · 16 pieces</span>
+      </button>
+      <button class="diff-btn" onclick="startGame(5)">
+        <span class="diff-icon">🟥</span>
+        <span class="diff-name">Hard</span>
+        <span class="diff-sub">5 × 5 · 25 pieces</span>
+      </button>
+    </div>
+    <button class="btn btn-secondary" onclick="retakePhoto()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Retake Photo
+    </button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="game-screen">
+    <div class="game-layout">
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-label">Time</div>
+          <div class="stat-value" id="timer-display">00:00.0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Moves</div>
+          <div class="stat-value" id="moves-display">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Correct</div>
+          <div class="stat-value" id="correct-display">0/9</div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+      </div>
+      <div id="puzzle-board"></div>
+      <div class="game-actions">
+        <button class="btn btn-secondary" onclick="retakePhoto()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 3H7.5A4.5 4.5 0 003 7.5v9A4.5 4.5 0 007.5 21h9A4.5 4.5 0 0021 16.5v-9A4.5 4.5 0 0016.5 3H15l-1-2H10L9 3z"/></svg>
+          New Photo
+        </button>
+        <button class="btn btn-secondary" onclick="showPreviewScreen()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Play Again
+        </button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- WIN OVERLAY -->
+<div class="win-overlay" id="win-overlay">
+  <div class="win-card">
+    <div class="win-emoji">🎉</div>
+    <div class="win-title">Puzzle Solved!</div>
+    <div class="win-stats">
+      <div class="win-stat">
+        <div class="win-stat-label">Time</div>
+        <div class="win-stat-value" id="win-time">—</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-label">Moves</div>
+        <div class="win-stat-value" id="win-moves">—</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-label">Grid</div>
+        <div class="win-stat-value" id="win-diff">—</div>
+      </div>
+    </div>
+    <div class="leaderboard" id="leaderboard-container">
+      <div class="lb-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+        Best Times
+      </div>
+      <div id="leaderboard-rows"></div>
+    </div>
+    <div class="win-actions">
+      <button class="btn btn-primary" onclick="playAgainSameDiff()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Play Again
+      </button>
+      <button class="btn btn-secondary" onclick="showPreviewScreen()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Change Difficulty
+      </button>
+      <button class="btn btn-danger" onclick="retakePhoto()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 3H7.5A4.5 4.5 0 003 7.5v9A4.5 4.5 0 007.5 21h9A4.5 4.5 0 0021 16.5v-9A4.5 4.5 0 0016.5 3H15l-1-2H10L9 3z"/></svg>
+        New Photo
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── State ──────────────────────────────────────────────────────────────
+  let videoStream = null;
+  let capturedImageDataURL = null;
+  let gridSize = 3;
+  let pieces = [];        // Array of { el, correctIndex, currentIndex }
+  let boardSize = 0;
+  let pieceSize = 0;
+  let timerInterval = null;
+  let startTime = 0;
+  let elapsedMs = 0;
+  let moves = 0;
+  let lastWinEntry = null;
+
+  // Drag state
+  let dragging = {
+    piece: null,
+    startX: 0,
+    startY: 0,
+    originLeft: 0,
+    originTop: 0,
+    offsetX: 0,
+    offsetY: 0,
+  };
+
+  const dropHighlight = document.createElement('div');
+  dropHighlight.className = 'drop-highlight';
+
+  // ── DOM ─────────────────────────────────────────────────────────────────
+  const video           = document.getElementById('video');
+  const snapshotCanvas  = document.getElementById('snapshot-canvas');
+  const cameraOverlay   = document.getElementById('camera-overlay');
+  const takePhotoBtn    = document.getElementById('take-photo-btn');
+  const previewImg      = document.getElementById('preview-img');
+  const board           = document.getElementById('puzzle-board');
+  const timerDisplay    = document.getElementById('timer-display');
+  const movesDisplay    = document.getElementById('moves-display');
+  const correctDisplay  = document.getElementById('correct-display');
+  const progressBar     = document.getElementById('progress-bar');
+  const winOverlay      = document.getElementById('win-overlay');
+  const winTime         = document.getElementById('win-time');
+  const winMoves        = document.getElementById('win-moves');
+  const winDiff         = document.getElementById('win-diff');
+  const lbRows          = document.getElementById('leaderboard-rows');
+
+  // ── Screens ─────────────────────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  window.showPreviewScreen = function () {
+    stopTimer();
+    winOverlay.classList.remove('active');
+    showScreen('preview-screen');
+  };
+
+  window.retakePhoto = function () {
+    stopTimer();
+    winOverlay.classList.remove('active');
+    capturedImageDataURL = null;
+    showScreen('camera-screen');
+    startCamera();
+  };
+
+  // ── Camera ───────────────────────────────────────────────────────────────
+  window.startCamera = async function () {
+    cameraOverlay.style.display = 'none';
+    takePhotoBtn.style.display = 'none';
+    try {
+      if (videoStream) {
+        videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
+      }
+      const constraints = {
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      };
+      videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = videoStream;
+      video.play();
+      video.onloadedmetadata = () => { takePhotoBtn.style.display = 'inline-flex'; };
+    } catch (e) {
+      cameraOverlay.style.display = 'flex';
+      const msg = document.getElementById('camera-error-msg');
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        msg.textContent = 'Camera permission was denied. Please allow camera access in your browser settings and try again.';
+      } else if (e.name === 'NotFoundError') {
+        msg.textContent = 'No camera found on this device.';
+      } else {
+        msg.textContent = 'Unable to access camera: ' + e.message;
+      }
+    }
+  };
+
+  window.takePhoto = function () {
+    const w = video.videoWidth || 640;
+    const h = video.videoHeight || 480;
+    const side = Math.min(w, h);
+    snapshotCanvas.width = side;
+    snapshotCanvas.height = side;
+    const ctx = snapshotCanvas.getContext('2d');
+    ctx.save();
+    ctx.translate(side, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, (w - side) / 2, (h - side) / 2, side, side, 0, 0, side, side);
+    ctx.restore();
+    capturedImageDataURL = snapshotCanvas.toDataURL('image/jpeg', 0.92);
+    previewImg.src = capturedImageDataURL;
+    if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+    showScreen('preview-screen');
+  };
+
+  // ── Puzzle Generation ────────────────────────────────────────────────────
+  window.startGame = function (size) {
+    gridSize = size;
+    winOverlay.classList.remove('active');
+    buildPuzzle();
+    showScreen('game-screen');
+    document.getElementById('game-screen').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  window.playAgainSameDiff = function () {
+    winOverlay.classList.remove('active');
+    buildPuzzle();
+    showScreen('game-screen');
+  };
+
+  function computeBoardSize() {
+    const maxW = Math.min(window.innerWidth - 32, 520);
+    const maxH = window.innerHeight * 0.55;
+    return Math.floor(Math.min(maxW, maxH) / gridSize) * gridSize;
+  }
+
+  function buildPuzzle() {
+    stopTimer();
+    moves = 0;
+    pieces = [];
+    board.innerHTML = '';
+    board.appendChild(dropHighlight);
+    dropHighlight.style.display = 'none';
+
+    boardSize = computeBoardSize();
+    pieceSize = boardSize / gridSize;
+
+    board.style.width  = boardSize + 'px';
+    board.style.height = boardSize + 'px';
+
+    const total = gridSize * gridSize;
+
+    // Create image slices via canvas
+    const imgCanvas = document.createElement('canvas');
+    imgCanvas.width  = boardSize;
+    imgCanvas.height = boardSize;
+    const imgCtx = imgCanvas.getContext('2d');
+    const img = new Image();
+    img.src = capturedImageDataURL;
+
+    img.onload = function () {
+      imgCtx.drawImage(img, 0, 0, boardSize, boardSize);
+
+      // Solvable scramble
+      let order = scramble(total);
+
+      for (let i = 0; i < total; i++) {
+        const correctIdx = i;
+        const currentIdx = order[i];
+
+        const row = Math.floor(correctIdx / gridSize);
+        const col = correctIdx % gridSize;
+
+        // Slice the correct piece from full image
+        const pieceCanvas = document.createElement('canvas');
+        pieceCanvas.width  = pieceSize;
+        pieceCanvas.height = pieceSize;
+        const pc = pieceCanvas.getContext('2d');
+        pc.drawImage(imgCanvas, col * pieceSize, row * pieceSize, pieceSize, pieceSize, 0, 0, pieceSize, pieceSize);
+        const dataURL = pieceCanvas.toDataURL('image/jpeg', 0.9);
+
+        const el = document.createElement('div');
+        el.className = 'puzzle-piece';
+        el.style.width  = (pieceSize - 2) + 'px';
+        el.style.height = (pieceSize - 2) + 'px';
+        el.style.backgroundImage = `url(${dataURL})`;
+        el.style.backgroundSize  = '100% 100%';
+
+        const cr = Math.floor(currentIdx / gridSize);
+        const cc = currentIdx % gridSize;
+        el.style.left = (cc * pieceSize + 1) + 'px';
+        el.style.top  = (cr * pieceSize + 1) + 'px';
+
+        el.dataset.correctIndex  = correctIdx;
+        el.dataset.currentIndex  = currentIdx;
+
+        board.appendChild(el);
+        pieces.push({ el, correctIndex: correctIdx, currentIndex: currentIdx });
+
+        // Events
+        el.addEventListener('mousedown',  onPointerDown, { passive: false });
+        el.addEventListener('touchstart', onPointerDown, { passive: false });
+      }
+
+      updateStats();
+      startTimer();
+    };
+  }
+
+  // ── Scramble (always solvable via even permutations swap pairs) ───────────
+  function scramble(n) {
+    let arr = Array.from({ length: n }, (_, i) => i);
+    // Fisher-Yates; if odd permutation flip one pair to make even
+    let swaps = 0;
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      if (j !== i) { [arr[i], arr[j]] = [arr[j], arr[i]]; swaps++; }
+    }
+    if (swaps % 2 !== 0 && n >= 2) { [arr[0], arr[1]] = [arr[1], arr[0]]; }
+    // Make sure it's not already solved
+    let solved = arr.every((v, i) => v === i);
+    if (solved && n >= 2) { [arr[0], arr[1]] = [arr[1], arr[0]]; [arr[2 < n ? 2 : 0], arr[3 < n ? 3 : 1]] = [arr[3 < n ? 3 : 1], arr[2 < n ? 2 : 0]]; }
+    return arr;
+  }
+
+  // ── Drag & Drop ──────────────────────────────────────────────────────────
+  function onPointerDown(e) {
+    e.preventDefault();
+    const el = e.currentTarget;
+    const touch = e.touches ? e.touches[0] : e;
+    const boardRect = board.getBoundingClientRect();
+
+    dragging.piece = el;
+    dragging.offsetX = touch.clientX - boardRect.left - parseFloat(el.style.left);
+    dragging.offsetY = touch.clientY - boardRect.top  - parseFloat(el.style.top);
+    dragging.startX  = touch.clientX;
+    dragging.startY  = touch.clientY;
+
+    el.classList.add('dragging');
+    el.style.zIndex = 1000;
+
+    dropHighlight.style.width  = pieceSize + 'px';
+    dropHighlight.style.height = pieceSize + 'px';
+    dropHighlight.style.display = 'block';
+
+    document.addEventListener('mousemove',  onPointerMove, { passive: false });
+    document.addEventListener('touchmove',  onPointerMove, { passive: false });
+    document.addEventListener('mouseup',    onPointerUp);
+    document.addEventListener('touchend',   onPointerUp);
+  }
+
+  function onPointerMove(e) {
+    e.preventDefault();
+    if (!dragging.piece) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const boardRect = board.getBoundingClientRect();
+
+    let newLeft = touch.clientX - boardRect.left - dragging.offsetX;
+    let newTop  = touch.clientY - boardRect.top  - dragging.offsetY;
+
+    // Clamp within board
+    newLeft = Math.max(0, Math.min(newLeft, boardSize - pieceSize + 2));
+    newTop  = Math.max(0, Math.min(newTop,  boardSize - pieceSize + 2));
+
+    dragging.piece.style.left = newLeft + 'px';
+    dragging.piece.style.top  = newTop  + 'px';
+
+    // Snap preview
+    const snapCol = Math.round(newLeft / pieceSize);
+    const snapRow = Math.round(newTop  / pieceSize);
+    const cSnapCol = Math.max(0, Math.min(snapCol, gridSize - 1));
+    const cSnapRow = Math.max(0, Math.min(snapRow, gridSize - 1));
+    dropHighlight.style.left = (cSnapCol * pieceSize) + 'px';
+    dropHighlight.style.top  = (cSnapRow * pieceSize) + 'px';
+  }
+
+  function onPointerUp(e) {
+    document.removeEventListener('mousemove',  onPointerMove);
+    document.removeEventListener('touchmove',  onPointerMove);
+    document.removeEventListener('mouseup',    onPointerUp);
+    document.removeEventListener('touchend',   onPointerUp);
+
+    if (!dragging.piece) return;
+    const el = dragging.piece;
+    dragging.piece = null;
+
+    dropHighlight.style.display = 'none';
+    el.classList.remove('dragging');
+
+    // Determine target cell from current position
+    const left = parseFloat(el.style.left);
+    const top  = parseFloat(el.style.top);
+    const targetCol = Math.max(0, Math.min(Math.round(left / pieceSize), gridSize - 1));
+    const targetRow = Math.max(0, Math.min(Math.round(top  / pieceSize), gridSize - 1));
+    const targetCellIndex = targetRow * gridSize + targetCol;
+
+    // Find piece that currently occupies targetCellIndex
+    const dragPieceData = pieces.find(p => p.el === el);
+    if (!dragPieceData) return;
+
+    if (dragPieceData.currentIndex === targetCellIndex) {
+      // Snap back to own cell
+      snapToCell(el, dragPieceData.currentIndex);
+      el.style.zIndex = '';
+      updateCorrectness();
+      return;
+    }
+
+    const targetPieceData = pieces.find(p => p.currentIndex === targetCellIndex);
+
+    // Swap
+    if (targetPieceData) {
+      const oldDragIdx   = dragPieceData.currentIndex;
+      const oldTargetIdx = targetPieceData.currentIndex;
+
+      dragPieceData.currentIndex   = oldTargetIdx;
+      targetPieceData.currentIndex = oldDragIdx;
+
+      el.dataset.currentIndex = oldTargetIdx;
+      targetPieceData.el.dataset.currentIndex = oldDragIdx;
+
+      snapToCell(el, oldTargetIdx);
+      snapToCell(targetPieceData.el, oldDragIdx);
+    } else {
+      snapToCell(el, targetCellIndex);
+      dragPieceData.currentIndex = targetCellIndex;
+      el.dataset.currentIndex = targetCellIndex;
+    }
+
+    el.style.zIndex = '';
+    moves++;
+    movesDisplay.textContent = moves;
+    updateCorrectness();
+
+    if (isPuzzleSolved()) {
+      onWin();
+    }
+  }
+
+  function snapToCell(el, idx) {
+    const r = Math.floor(idx / gridSize);
+    const c = idx % gridSize;
+    el.style.left = (c * pieceSize + 1) + 'px';
+    el.style.top  = (r * pieceSize + 1) + 'px';
+    el.style.transition = 'left 0.15s ease, top 0.15s ease';
+    setTimeout(() => { el.style.transition = ''; }, 160);
+  }
+
+  // ── Correctness ───────────────────────────────────────────────────────────
+  function updateCorrectness() {
+    let correct = 0;
+    const total = pieces.length;
+    pieces.forEach(p => {
+      const isCorrect = p.currentIndex === p.correctIndex;
+      p.el.classList.toggle('correct', isCorrect);
+      if (isCorrect) correct++;
+    });
+    correctDisplay.textContent = correct + '/' + total;
+    progressBar.style.width = ((correct / total) * 100) + '%';
+  }
+
+  function updateStats() {
+    const total = pieces.length;
+    correctDisplay.textContent = '0/' + total;
+    movesDisplay.textContent = '0';
+    progressBar.style.width = '0%';
+  }
+
+  function isPuzzleSolved() {
+    return pieces.every(p => p.currentIndex === p.correctIndex);
+  }
+
+  // ── Timer ────────────────────────────────────────────────────────────────
+  function startTimer() {
+    stopTimer();
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 100);
+  }
+
+  function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+
+  function updateTimer() {
+    elapsedMs = Date.now() - startTime;
+    timerDisplay.textContent = formatTime(elapsedMs);
+  }
+
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 100) / 10;
+    const m = Math.floor(totalSec / 60);
+    const s = Math.floor(totalSec % 60);
+    const t = Math.floor((ms % 1000) / 100);
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + t;
+  }
+
+  // ── Win ───────────────────────────────────────────────────────────────────
+  function onWin() {
+    stopTimer();
+    const finalMs = elapsedMs;
+
+    winTime.textContent  = formatTime(finalMs);
+    winMoves.textContent = moves;
+    winDiff.textContent  = gridSize + '×' + gridSize;
+
+    const entry = {
+      ms: finalMs,
+      time: formatTime(finalMs),
+      moves,
+      diff: gridSize + '×' + gridSize,
+      date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    };
+    lastWinEntry = entry;
+    saveScore(entry);
+    renderLeaderboard(entry);
+
+    winOverlay.classList.add('active');
+    spawnConfetti();
+  }
+
+  // ── Leaderboard ───────────────────────────────────────────────────────────
+  function saveScore(entry) {
+    let scores = [];
+    try { scores = JSON.parse(localStorage.getItem('facepuzzle_scores') || '[]'); } catch (_) {}
+    scores.push(entry);
+    scores.sort((a, b) => a.ms - b.ms);
+    scores = scores.slice(0, 5);
+    try { localStorage.setItem('facepuzzle_scores', JSON.stringify(scores)); } catch (_) {}
+  }
+
+  function renderLeaderboard(newEntry) {
+    let scores = [];
+    try { scores = JSON.parse(localStorage.getItem('facepuzzle_scores') || '[]'); } catch (_) {}
+    if (scores.length === 0) {
+      lbRows.innerHTML = '<div class="lb-empty">No scores yet</div>';
+      return;
+    }
+    const rankChars = ['gold', 'silver', 'bronze'];
+    lbRows.innerHTML = scores.map((s, i) => {
+      const isMe = newEntry && s.ms === newEntry.ms && s.moves === newEntry.moves && s.diff === newEntry.diff;
+      const rankClass = rankChars[i] || '';
+      return `<div class="lb-row${isMe ? ' me' : ''}">
+        <span class="lb-rank ${rankClass}">#${i+1}</span>
+        <span class="lb-time">${s.time}</span>
+        <span class="lb-moves">${s.moves} moves</span>
+        <span class="lb-diff">${s.diff} · ${s.date}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Confetti ─────────────────────────────────────────────────────────────
+  function spawnConfetti() {
+    const colors = ['#7c6af7', '#f76a8a', '#3de89a', '#f7c44a', '#60b8ff'];
+    for (let i = 0; i < 80; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.top  = '-20px';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.width  = (6 + Math.random() * 8) + 'px';
+      el.style.height = (6 + Math.random() * 8) + 'px';
+      el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      el.style.animationDuration = (1.8 + Math.random() * 2.2) + 's';
+      el.style.animationDelay    = (Math.random() * 0.8) + 's';
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  // ── Window exports ────────────────────────────────────────────────────────
+  window.playAgainSameDiff = function () {
+    winOverlay.classList.remove('active');
+    buildPuzzle();
+    showScreen('game-screen');
+  };
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  startCamera();
+
+})();
+</script>
+</body>
+</html>
